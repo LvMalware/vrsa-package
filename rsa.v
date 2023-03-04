@@ -63,7 +63,7 @@ pub fn is_prime(x big.Integer) bool {
 	return true
 }
 
-pub fn get_prime(bitlen int) ?big.Integer {
+pub fn get_prime(bitlen int) !big.Integer {
 	nbytes := (bitlen + 4) / 8
 	six := big.integer_from_int(6)
 	for {
@@ -85,7 +85,7 @@ fn invmod(a big.Integer, m big.Integer) big.Integer {
 	return if a < big.two_int { a } else { m - invmod(m % a, a) * m / a }
 }
 
-pub fn generate_keypair(key_size int) ?KeyPair {
+pub fn generate_keypair(key_size int) !KeyPair {
 	p := get_prime(key_size / 2) or { return error('Error generating primes') }
 	mut q := get_prime(key_size / 2) or { return error('Error generating primes') }
 	for p == q {
