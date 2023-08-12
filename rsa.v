@@ -36,47 +36,31 @@ pub fn (kp KeyPair) str() string {
 	return 'KeyPair(key_size=${kp.key_size}, pub=${kp.pubkey}, priv=${kp.privkey})'
 }
 
-fn powmod(a big.Integer, e big.Integer, n big.Integer) big.Integer {
-	// faster than big.big_mod_pow
-	mut x := a % n
-	mut b := e
-	mut r := big.one_int
-	for b > big.zero_int {
-		if b % big.two_int == big.one_int {
-			r = (r * x) % n
-		}
-		x = (x * x) % n
-		b = b.rshift(1)
-	}
-	return r
-}
-
 pub fn is_prime(x big.Integer) bool {
 	// primarity test through Fermat's Little Theorem (FLT) using three rounds
-	bases := [big.two_int, big.integer_from_int(3), big.integer_from_int(5)]
+	bases := [big.two_int, big.integer_from_int(3), big.integer_from_int(5),
+		big.integer_from_int(191), big.integer_from_int(1583)]
 	p := x - big.one_int
 	for a in bases {
-		if powmod(a, p, x) != big.one_int {
+		if (a.big_mod_pow(p, x) or { big.zero_int }) != big.one_int {
 			return false
 		}
 	}
 	return true
 }
 
+// 110
+
 pub fn get_prime(bitlen int) !big.Integer {
-	nbytes := (bitlen + 4) / 8
-	six := big.integer_from_int(6)
+	low := big.two_int.pow(u32(bitlen - 1))
+	top := big.two_int.pow(u32(bitlen))
+	mut s := bitlen / 8
 	for {
-		byte_array := rand.bytes(nbytes) or { return error('Error while generating random prime') }
-		n := big.integer_from_bytes(byte_array)
-		c := six * n - big.one_int
-		if is_prime(c) {
-			return c
+		n := low + big.two_int * big.integer_from_bytes(rand.bytes(s)!) + big.one_int
+		if n < top && is_prime(n) {
+			return n
 		}
-		d := six * n + big.one_int
-		if is_prime(d) {
-			return d
-		}
+		// s = n.int() % bitlen
 	}
 	return error("Can't get a prime number :/")
 }
@@ -119,7 +103,7 @@ pub fn generate_keypair(key_size int) !KeyPair {
 // encrypt
 
 pub fn (pk PublicKey) encrypt_integer(i big.Integer) big.Integer {
-	return powmod(i, pk.e, pk.n)
+	return i.big_mod_pow(pk.e, pk.n) or { big.zero_int }
 }
 
 pub fn (pk PublicKey) encrypt_bytes(bytes []u8) []u8 {
@@ -147,7 +131,7 @@ pub fn (kp KeyPair) encrypt_string(s string) []u8 {
 // decrypt
 
 pub fn (pk PrivateKey) decrypt_integer(i big.Integer) big.Integer {
-	return powmod(i, pk.d, pk.n)
+	return i.big_mod_pow(pk.d, pk.n) or { big.zero_int }
 }
 
 pub fn (pk PrivateKey) decrypt_bytes(bytes []u8) []u8 {
