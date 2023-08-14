@@ -74,8 +74,9 @@ fn xor(a []u8, b []u8) []u8 {
 // Encrypts a message m with label l and returns an u8 array with the ciphertext.
 // The label can be an empty array. See RFC 8017 for an explanation of what this label is.
 // Note: There are some limitations on the size of the message that can be encrypted using this scheme
-// specifically, the maximum size of a message is k - 2 * hlen - 2, where k is the number of bits in the RSA
-// key and hlen is the number of bits in the output of the chosen hash function
+// specifically, the maximum size of a message is k - 2 * hlen - 2, where k is the number of bytes in the RSA
+// key and hlen is the number of bytes in the output of the chosen hash function. For example, if you use a
+// 512-bits RSA key with sha1 hash, you can only encrypt messages of 64 - 2 * 20 - 2 = 22 characters.
 pub fn (o &OEAP) encrypt(m []u8, l []u8) ![]u8 {
 	if l.len > (1 << o.hlen) {
 		return error('Label is too long')
@@ -96,8 +97,7 @@ pub fn (o &OEAP) encrypt(m []u8, l []u8) ![]u8 {
 	mut em := [u8(0)]
 	em << masked_seed
 	em << masked_db
-	enc := o.keypair.encrypt_bytes(em)
-	return enc
+	return o.keypair.encrypt_bytes(em)
 }
 
 // Decrypts a ciphertext c with label l and returns an u8 array with the plaintext

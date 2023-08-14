@@ -37,7 +37,7 @@ pub fn (kp KeyPair) str() string {
 }
 
 pub fn is_prime(x big.Integer) bool {
-	// primarity test through Fermat's Little Theorem (FLT) using three rounds
+	// primarity test through Fermat's Little Theorem (FLT) using five rounds
 	bases := [big.two_int, big.integer_from_int(3), big.integer_from_int(5),
 		big.integer_from_int(191), big.integer_from_int(1583)]
 	p := x - big.one_int
@@ -49,8 +49,6 @@ pub fn is_prime(x big.Integer) bool {
 	return true
 }
 
-// 110
-
 pub fn get_prime(bitlen int) !big.Integer {
 	low := big.two_int.pow(u32(bitlen - 1))
 	top := big.two_int.pow(u32(bitlen))
@@ -60,13 +58,8 @@ pub fn get_prime(bitlen int) !big.Integer {
 		if n < top && is_prime(n) {
 			return n
 		}
-		// s = n.int() % bitlen
 	}
 	return error("Can't get a prime number :/")
-}
-
-fn invmod(a big.Integer, m big.Integer) big.Integer {
-	return if a < big.two_int { a } else { m - invmod(m % a, a) * m / a }
 }
 
 pub fn generate_keypair(key_size int) !KeyPair {
@@ -81,11 +74,7 @@ pub fn generate_keypair(key_size int) !KeyPair {
 		e: big.integer_from_int(65537)
 	}
 
-	d := invmod(pb.e, (p - big.one_int) * (q - big.one_int))
-
-	if d == big.zero_int {
-		return error("Invmod doesn't exist!")
-	}
+	d := pb.e.mod_inverse((p - big.one_int) * (q - big.one_int))!
 
 	pv := PrivateKey{
 		p: p
